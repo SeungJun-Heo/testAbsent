@@ -108,18 +108,6 @@ export async function waitForLogin(page) {
 
     if (isLoggedIn) {
       console.log('✓ 로그인 확인됨!');
-
-      // 세션 저장 (USE_SAVED_SESSION=true인 경우)
-      if (process.env.USE_SAVED_SESSION === 'true') {
-        try {
-          const sessionFile = process.env.SESSION_FILE || './auth-state.json';
-          await page.context().storageState({ path: sessionFile });
-          console.log(`✓ 세션 저장: ${sessionFile}`);
-        } catch (e) {
-          console.log('⚠️  세션 저장 실패 (무시 가능):', e.message);
-        }
-      }
-
       return true;
     }
 

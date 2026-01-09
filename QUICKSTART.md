@@ -153,26 +153,16 @@ LOGIN_CHECK_RETRY_INTERVAL=300000
 LOGIN_CHECK_MAX_DURATION=3600000
 ```
 
-### WSL에서 실행
+### Windows에서만 실행 가능
 
-```bash
-# WSL에서 추가 의존성 설치
-sudo apt-get update
-sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
-    libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
-    libxrandr2 libgbm1 libasound2
+**중요:** WSL 환경에서는 회사 보안 프로그램으로 인해 로그인이 불가능합니다.
+반드시 Windows PowerShell 또는 CMD에서 실행하세요.
 
-# headless 모드 필수
-HEADLESS=true
-```
-
-**WSL에서 로그인 문제:**
-- 세션 저장 사용 (첫 실행은 Windows에서)
-- 또는 로그인되어 있을 시간에만 스케줄 실행
+Windows 자동화 설정 가이드: [WINDOWS_SETUP.md](WINDOWS_SETUP.md)
 
 ## 유용한 명령어
 
-```bash
+```powershell
 # 테스트 (Confluence 업데이트 안 함)
 npm test
 
@@ -188,8 +178,9 @@ npm run test-confluence
 # 페이지 구조 분석
 npm run analyze-page
 
-# 백그라운드 실행 (Linux/WSL)
-nohup npm start > automation.log 2>&1 &
+# 백그라운드 실행 (Windows - PM2 사용)
+pm2 start src/index.js --name vacation-automation
+pm2 status
 ```
 
 ## 더 자세한 정보

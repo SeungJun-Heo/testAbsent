@@ -10,7 +10,7 @@ Playwright를 사용하여 회사 시스템의 팀원 휴가 현황을 자동으
 - [설치 방법](#설치-방법)
 - [설정](#설정)
 - [사용 방법](#사용-방법)
-- [WSL 환경 설정](#wsl-환경-설정)
+- [Windows 환경 설정](#windows-환경-설정)
 - [프로젝트 구조](#프로젝트-구조)
 - [문제 해결](#문제-해결)
 
@@ -91,28 +91,34 @@ await page.click('button[type="submit"]');
 
 ## 시스템 요구사항
 
+- **Windows 10/11** (필수 - WSL 환경에서는 회사 보안 프로그램 문제로 실행 불가)
 - Node.js 18.x 이상
 - npm 또는 yarn
-- Windows 10/11 또는 Linux (WSL2 포함)
 - 최소 2GB 여유 디스크 공간 (브라우저 설치용)
+
+**중요:** 이 프로젝트는 Windows에서만 정상 작동합니다.
+WSL 환경의 Chrome에서는 회사 보안 프로그램으로 인해 로그인이 불가능합니다.
+상세 가이드: [WINDOWS_SETUP.md](WINDOWS_SETUP.md)
 
 ## 설치 방법
 
+Windows PowerShell 또는 CMD에서 다음 명령어를 실행하세요.
+
 ### 1. 프로젝트 클론 또는 다운로드
 
-```bash
-cd /path/to/your/project
+```powershell
+cd C:\path\to\your\project
 ```
 
 ### 2. 의존성 설치
 
-```bash
+```powershell
 npm install
 ```
 
 ### 3. Playwright 브라우저 설치
 
-```bash
+```powershell
 npm run install-browsers
 ```
 
@@ -122,32 +128,35 @@ npm run install-browsers
 
 `.env.example` 파일을 복사하여 `.env` 파일을 생성합니다:
 
-```bash
-cp .env.example .env
+```powershell
+Copy-Item .env.example .env
 ```
 
-그리고 `.env` 파일을 열어 실제 정보로 수정합니다:
+메모장으로 `.env` 파일을 열어 실제 정보로 수정합니다:
+
+```powershell
+notepad .env
+```
+
+필수 설정 항목:
 
 ```env
-# 회사 로그인 정보
-COMPANY_LOGIN_URL=https://your-company-login.com
-COMPANY_USERNAME=your-username
-COMPANY_PASSWORD=your-password
+# 회사 페이지 URL (로그인 페이지 또는 메인 페이지)
+COMPANY_LOGIN_URL=https://your-company.com
+VACATION_PAGE_URL=https://your-company.com/vacation
 
-# 휴가 현황 페이지 정보
-VACATION_PAGE_URL=https://your-company-vacation-page.com
+# Confluence 페이지 URL
+CONFLUENCE_PAGE_URL=https://your-confluence.atlassian.net/wiki/spaces/TEAM/pages/123/Team-Calendar
 
-# Confluence 설정 (Playwright로 직접 편집)
-CONFLUENCE_PAGE_URL=https://your-confluence.atlassian.net/wiki/spaces/TEAM/pages/123456789/Team+Calendar
-CONFLUENCE_USERNAME=your-confluence-email@company.com
-CONFLUENCE_PASSWORD=your-confluence-password
-CONFLUENCE_LOGIN_URL=https://your-confluence.atlassian.net/login
+# 로그인 재시도 설정
+LOGIN_CHECK_RETRY_INTERVAL=600000      # 10분 (밀리초)
+LOGIN_CHECK_MAX_DURATION=7200000       # 2시간 (밀리초)
 
-# 스케줄 설정 (cron 형식)
-CRON_SCHEDULE=0 9 * * 1-5
+# 스케줄 설정 (cron 형식: 분 시 일 월 요일)
+CRON_SCHEDULE=0 9 * * 1-5              # 평일 오전 9시
 
 # 브라우저 설정
-HEADLESS=true
+HEADLESS=false                          # 개발 시 false, 프로덕션 시 true
 BROWSER_TIMEOUT=30000
 
 # 데이터 저장 경로
@@ -156,22 +165,21 @@ DATA_DIR=./data
 
 ### Confluence 설정 방법
 
-**이제 API 토큰이 필요없습니다!** Playwright가 브라우저를 자동으로 조작하여 페이지를 직접 편집합니다.
+**API 토큰이 필요없습니다!** Playwright가 브라우저를 직접 조작하여 페이지를 편집합니다.
 
-1. Confluence 페이지 URL 복사:
+1. Confluence 페이지 URL만 복사:
    - 업데이트할 Confluence 페이지로 이동
    - 주소창의 전체 URL 복사
    - 예: `https://your-company.atlassian.net/wiki/spaces/TEAM/pages/123456789/Team+Calendar`
 
-2. Confluence 로그인 정보:
-   - 일반 사용자 계정 이메일
-   - 비밀번호
-   - 해당 페이지에 대한 편집 권한만 있으면 됩니다!
+2. **로그인 정보는 .env에 저장하지 않습니다**:
+   - 프로그램 실행 시 브라우저에서 직접 로그인
+   - 해당 페이지에 대한 편집 권한만 있으면 됩니다
 
 **장점:**
+- ✅ 비밀번호를 파일에 저장하지 않음 (보안)
 - ✅ API 토큰 설정 불필요
-- ✅ 복잡한 권한 관리 불필요
-- ✅ 일반 사용자 계정만 있으면 됨
+- ✅ SSO/2FA 로그인도 지원
 - ✅ 실제 편집 UI를 사용하므로 더 안정적
 
 ## 설정
@@ -298,82 +306,55 @@ pm2 stop vacation-automation  # 중지
 pm2 restart vacation-automation  # 재시작
 ```
 
-## WSL 환경 설정
+## Windows 환경 설정
 
-### WSL에서 Playwright 실행하기
+### Windows에서 자동화 실행하기
 
-네, WSL(Windows Subsystem for Linux) 환경에서도 이 프로그램을 실행할 수 있습니다!
+**중요:** 이 프로그램은 Windows 네이티브 환경에서만 실행됩니다.
+WSL 환경에서는 회사 보안 프로그램으로 인해 로그인이 불가능합니다.
 
-#### WSL2 설치 (Windows 10/11)
+### Windows 스케줄러로 자동 실행
 
-1. PowerShell을 관리자 권한으로 실행
-2. 다음 명령어 실행:
+Windows 작업 스케줄러를 사용하면 특정 시간에 자동으로 프로그램을 실행할 수 있습니다.
 
-```powershell
-wsl --install
-```
+1. **작업 스케줄러 열기**
+   - `Win + R` 키를 누르고 `taskschd.msc` 입력
 
-3. 컴퓨터 재시작
-4. Ubuntu가 자동으로 설치됩니다
+2. **새 작업 만들기**
+   - "작업 만들기" 클릭
+   - 트리거: 매일 오전 9시 (또는 원하는 시간)
+   - 동작: `powershell.exe` 실행
+   - 인수: `-ExecutionPolicy Bypass -File "C:\path\to\testAbsent\run.ps1"`
 
-#### WSL에서 프로젝트 설정
-
-WSL 터미널에서:
-
-```bash
-# Node.js 설치 (NodeSource 사용)
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# 추가 의존성 설치 (Playwright 브라우저 실행에 필요)
-sudo apt-get update
-sudo apt-get install -y \
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2
-
-# 프로젝트 폴더로 이동
-cd /mnt/c/Users/YourUsername/path/to/project
-
-# 의존성 설치
-npm install
-npm run install-browsers
-```
-
-#### WSL에서 주의사항
-
-1. **파일 시스템**: WSL의 파일 시스템(`/home/username`)에서 작업하는 것이 Windows 파일 시스템(`/mnt/c/`)보다 빠릅니다.
-
-2. **Headless 모드**: WSL에는 GUI가 없으므로 반드시 headless 모드로 실행해야 합니다:
-   ```env
-   HEADLESS=true
+3. **PowerShell 스크립트 생성** (`run.ps1`)
+   ```powershell
+   Set-Location $PSScriptRoot
+   npm run start -- --once 2>&1 | Out-File -Append automation.log
    ```
 
-3. **WSLg (GUI 지원)**: Windows 11이나 최신 Windows 10에서는 WSLg가 포함되어 있어 GUI 앱도 실행 가능합니다. headless=false로도 실행할 수 있습니다.
+상세한 설정 가이드: [WINDOWS_SETUP.md](WINDOWS_SETUP.md)
 
-#### Windows vs WSL 비교
+### PM2로 백그라운드 실행 (권장)
 
-| 특징 | Windows 네이티브 | WSL2 |
-|------|-----------------|------|
-| 설치 난이도 | 쉬움 | 중간 |
-| 실행 속도 | 빠름 | 매우 빠름 |
-| GUI 브라우저 | 가능 | WSLg 필요 (Windows 11) |
-| 리소스 사용 | 보통 | 낮음 |
-| 크론잡 설정 | 복잡 (Task Scheduler) | 쉬움 (cron) |
+```powershell
+# PM2 설치
+npm install -g pm2
+npm install -g pm2-windows-service
 
-**권장사항**:
-- 개발/테스트: Windows 네이티브 (GUI 확인 용이)
-- 프로덕션/자동화: WSL2 (안정적, 리소스 효율적)
+# PM2 서비스 설치
+pm2-service-install
+
+# 앱 시작
+pm2 start src/index.js --name vacation-automation
+
+# 상태 확인
+pm2 status
+pm2 logs vacation-automation
+
+# 부팅 시 자동 시작
+pm2 startup
+pm2 save
+```
 
 ## 프로젝트 구조
 
