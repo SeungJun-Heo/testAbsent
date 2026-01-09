@@ -46,17 +46,39 @@ async function runAutomation(dryRun = false) {
     // 1. 브라우저 실행
     // Selenium의 webdriver.Chrome()과 유사한 역할
     console.log('\n[1/6] 브라우저 실행 중...');
-    browser = await chromium.launch({
-      headless: process.env.HEADLESS === 'true', // headless 모드 설정
-      slowMo: 100, // 각 작업 사이 100ms 지연 (디버깅에 유용)
-    });
+
+    // Remote Browser 지원 (WSL에서 Windows Chrome 사용)
+    if (process.env.CHROME_REMOTE_DEBUGGING_URL) {
+      console.log(`  - Remote Chrome 연결: ${process.env.CHROME_REMOTE_DEBUGGING_URL}`);
+      browser = await chromium.connectOverCDP(process.env.CHROME_REMOTE_DEBUGGING_URL);
+      console.log('  ✓ Windows Chrome에 연결됨');
+    } else {
+      browser = await chromium.launch({
+        headless: process.env.HEADLESS === 'true', // headless 모드 설정
+        slowMo: 100, // 각 작업 사이 100ms 지연 (디버깅에 유용)
+      });
+    }
+
+    // 세션 저장/복원 설정
+    const useSavedSession = process.env.USE_SAVED_SESSION === 'true';
+    const sessionFile = process.env.SESSION_FILE || './auth-state.json';
+    let storageState = undefined;
+
+    if (useSavedSession) {
+      try {
+        await fs.access(sessionFile);
+        storageState = sessionFile;
+        console.log(`  ✓ 저장된 세션 로드: ${sessionFile}`);
+      } catch (e) {
+        console.log('  - 저장된 세션 없음. 새로 로그인이 필요합니다.');
+      }
+    }
 
     // 브라우저 컨텍스트 생성 (독립적인 세션, Selenium의 driver와 유사)
     context = await browser.newContext({
       viewport: { width: 1920, height: 1080 },
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      // 로그인 세션 유지를 위한 쿠키/스토리지 경로 (선택사항)
-      // storageState: './auth-state.json'
+      storageState, // 저장된 세션 사용 (있는 경우)
     });
 
     // 새 페이지 생성
