@@ -16,13 +16,17 @@ Playwright를 사용하여 회사 시스템의 팀원 휴가 현황을 자동으
 
 ## 주요 기능
 
-- 회사 시스템 자동 로그인 및 세션 관리
+- 로그인 상태 확인 및 자동 재시도 (자동 로그인 아님!)
 - 휴가 현황 페이지 자동 탐색 및 데이터 수집
 - JSON 형식으로 데이터 저장 및 히스토리 관리
 - 변경사항 자동 감지 (신규/변경/삭제)
-- Confluence Team Calendar 자동 업데이트
+- Confluence Team Calendar 자동 업데이트 (Playwright 사용)
 - 스케줄 실행 지원 (cron)
 - 오류 발생 시 스크린샷 자동 저장
+- SSO/2FA 지원 (수동 로그인 방식)
+
+**중요:** 이 프로그램은 자동 로그인하지 않습니다. 브라우저에서 미리 로그인해야 합니다.
+자세한 내용: [LOGIN_APPROACH.md](LOGIN_APPROACH.md)
 
 ## Selenium vs Playwright
 
@@ -176,24 +180,35 @@ DATA_DIR=./data
 
 실제 회사 시스템에 맞게 다음 파일들을 수정해야 합니다:
 
-#### 1. 로그인 로직 수정 ([src/modules/auth.js](src/modules/auth.js))
+#### 1. 로그인 확인 선택자 수정 ([src/modules/auth.js](src/modules/auth.js:40))
+
+**중요:** 이 프로그램은 자동 로그인하지 않습니다! 로그인 상태만 확인합니다.
 
 ```javascript
-// 실제 로그인 폼의 선택자로 변경
-await page.fill('input[name="username"]', username); // 실제 선택자로 변경
-await page.fill('input[name="password"]', password); // 실제 선택자로 변경
-await page.click('button[type="submit"]'); // 실제 버튼 선택자로 변경
+// 로그인된 사용자만 볼 수 있는 요소 선택자
+const loggedInSelectors = [
+  '.user-profile',        // 실제 선택자로 변경
+  '.user-menu',
+  '#user-name',
+  '[data-testid="user-menu"]',
+  '.header-user',
+];
 ```
 
 **선택자를 찾는 방법:**
-1. 회사 로그인 페이지를 Chrome 브라우저로 엽니다
+1. 회사 페이지에 로그인합니다
 2. F12를 눌러 개발자 도구를 엽니다
 3. 요소 선택 도구(🔍)를 클릭합니다
-4. 사용자명 입력란을 클릭합니다
-5. 하단에 표시되는 HTML 태그를 확인합니다
-   - `<input id="username">` → 선택자: `#username`
-   - `<input name="user">` → 선택자: `input[name="user"]`
-   - `<input class="login-input">` → 선택자: `.login-input`
+4. 로그인 후에만 보이는 요소를 클릭합니다 (예: 사용자 이름, 프로필 사진)
+5. 하단에 표시되는 HTML 태그의 선택자를 확인합니다
+   - `<div class="user-profile">` → 선택자: `.user-profile`
+   - `<div id="user-menu">` → 선택자: `#user-menu`
+   - `<span class="username">` → 선택자: `.username`
+
+또는 `.env` 파일에서 직접 지정:
+```env
+LOGIN_INDICATOR_SELECTOR=.your-user-element
+```
 
 #### 2. 휴가 페이지 탐색 로직 수정 ([src/modules/vacation.js](src/modules/vacation.js))
 
