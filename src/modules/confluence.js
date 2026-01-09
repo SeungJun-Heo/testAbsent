@@ -78,60 +78,56 @@ function formatVacationDataAsTable(vacationData) {
 }
 
 /**
- * Confluence 페이지에 로그인
+ * Confluence 로그인 상태 확인
  *
  * @param {import('playwright').Page} page - Playwright 페이지 객체
+ * @returns {Promise<boolean>} 로그인 여부
  */
-async function loginToConfluence(page) {
+async function checkConfluenceLogin(page) {
   try {
-    console.log('  - Confluence 로그인 시도 중...');
-
-    // Confluence 로그인 페이지로 이동
-    await page.goto(process.env.CONFLUENCE_LOGIN_URL || process.env.CONFLUENCE_PAGE_URL, {
-      waitUntil: 'networkidle',
-      timeout: 30000,
-    });
-
-    // 이미 로그인되어 있는지 확인
     const isLoggedIn = await page.evaluate(() => {
       // Confluence는 로그인되어 있으면 특정 요소가 있음
-      return document.querySelector('#user-menu-link, [data-test-id="user-menu"]') !== null;
+      return document.querySelector('#user-menu-link, [data-test-id="user-menu"], .confluence-userinfo') !== null;
     });
 
-    if (isLoggedIn) {
-      console.log('  ✓ 이미 Confluence에 로그인되어 있습니다.');
-      return;
-    }
-
-    // Atlassian 로그인 화면 대기
-    console.log('  - 로그인 폼 대기 중...');
-
-    // 이메일/사용자명 입력 (Atlassian 통합 로그인)
-    await page.waitForSelector('input[name="username"], input[type="email"]', { timeout: 10000 });
-    await page.fill('input[name="username"], input[type="email"]', process.env.CONFLUENCE_USERNAME);
-    console.log('  - 사용자명 입력 완료');
-
-    // Continue 버튼 클릭
-    await page.click('button[type="submit"], button:has-text("Continue")');
-    await page.waitForTimeout(1000);
-
-    // 비밀번호 입력 (다음 화면에서)
-    await page.waitForSelector('input[name="password"], input[type="password"]', { timeout: 10000 });
-    await page.fill('input[name="password"], input[type="password"]', process.env.CONFLUENCE_PASSWORD);
-    console.log('  - 비밀번호 입력 완료');
-
-    // 로그인 버튼 클릭
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: 'networkidle', timeout: 30000 }).catch(() => {}),
-      page.click('button[type="submit"], button:has-text("Log in")'),
-    ]);
-
-    console.log('  ✓ Confluence 로그인 성공');
-
+    return isLoggedIn;
   } catch (error) {
-    console.error('  ⚠️  Confluence 로그인 실패:', error.message);
-    console.log('  💡 수동 로그인을 위해 10초 대기합니다...');
-    await page.waitForTimeout(10000);
+    return false;
+  }
+}
+
+/**
+ * Confluence 로그인 대기
+ * 사용자가 직접 로그인할 때까지 대기합니다.
+ *
+ * @param {import('playwright').Page} page - Playwright 페이지 객체
+ * @param {number} waitTime - 대기 시간 (밀리초)
+ */
+async function waitForConfluenceLogin(page, waitTime = 60000) {
+  console.log('  - Confluence 로그인 상태 확인 중...');
+
+  const isLoggedIn = await checkConfluenceLogin(page);
+
+  if (isLoggedIn) {
+    console.log('  ✓ 이미 Confluence에 로그인되어 있습니다.');
+    return true;
+  }
+
+  console.log('  ⚠️  Confluence에 로그인되지 않았습니다.');
+  console.log(`  💡 브라우저에서 Confluence에 로그인해주세요. ${waitTime / 1000}초 대기합니다...`);
+
+  // 사용자가 로그인할 시간 제공
+  await page.waitForTimeout(waitTime);
+
+  // 다시 확인
+  const isLoggedInNow = await checkConfluenceLogin(page);
+
+  if (isLoggedInNow) {
+    console.log('  ✓ Confluence 로그인 확인됨!');
+    return true;
+  } else {
+    console.log('  ⚠️  여전히 로그인되지 않았습니다. 계속 진행합니다...');
+    return false;
   }
 }
 
@@ -165,8 +161,8 @@ export async function updateConfluencePage(vacationData, changes, browser = null
     });
     page = await context.newPage();
 
-    // Confluence 로그인
-    await loginToConfluence(page);
+    // Confluence 로그인 확인
+    await waitForConfluenceLogin(page);
 
     // Confluence 페이지로 이동
     console.log('  - Confluence 페이지로 이동 중...');
@@ -425,7 +421,7 @@ export async function updateConfluencePageWithExistingBrowser(page, vacationData
     });
 
     if (needsLogin) {
-      await loginToConfluence(page);
+      await waitForConfluenceLogin(page);
       await page.goto(process.env.CONFLUENCE_PAGE_URL, { waitUntil: 'networkidle' });
     }
 

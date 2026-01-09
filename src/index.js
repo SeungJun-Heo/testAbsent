@@ -14,7 +14,7 @@ import dotenv from 'dotenv';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { checkLoginStatus, loginToCompany } from './modules/auth.js';
+import { waitForLogin } from './modules/auth.js';
 import { navigateToVacationPage, parseVacationData } from './modules/vacation.js';
 import { updateConfluencePage } from './modules/confluence.js';
 import { compareVacationData, saveVacationData, loadPreviousData } from './modules/dataManager.js';
@@ -65,16 +65,12 @@ async function runAutomation(dryRun = false) {
     // 타임아웃 설정 (Selenium의 implicitly_wait와 유사)
     page.setDefaultTimeout(parseInt(process.env.BROWSER_TIMEOUT) || 30000);
 
-    // 2. 로그인 상태 확인 및 로그인
+    // 2. 로그인 상태 확인 (재시도 포함)
     console.log('\n[2/6] 로그인 상태 확인 중...');
-    const isLoggedIn = await checkLoginStatus(page);
+    const isLoggedIn = await waitForLogin(page);
 
     if (!isLoggedIn) {
-      console.log('로그인이 필요합니다. 로그인 진행 중...');
-      await loginToCompany(page);
-      console.log('✓ 로그인 성공');
-    } else {
-      console.log('✓ 이미 로그인 되어 있습니다.');
+      throw new Error('로그인 실패: 최대 대기 시간 초과');
     }
 
     // 3. 휴가 현황 페이지로 이동
