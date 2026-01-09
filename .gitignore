@@ -144,6 +144,25 @@ ENV/
 env.bak/
 venv.bak/
 
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Playwright
+auth-state.json
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Project specific
+data/
+*.log
+error-*.png
+
 # Spyder project settings
 .spyderproject
 .spyproject

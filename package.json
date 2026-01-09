@@ -1,0 +1,31 @@
+{
+  "name": "team-vacation-automation",
+  "version": "1.0.0",
+  "description": "Playwright를 이용한 팀원 휴가 현황 자동화 시스템",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node src/index.js --dry-run",
+    "once": "node src/index.js --once",
+    "install-browsers": "npx playwright install chromium",
+    "find-selectors": "node examples/selector-finder.js",
+    "analyze-page": "node examples/vacation-page-analyzer.js",
+    "test-confluence": "node examples/confluence-editor-test.js"
+  },
+  "keywords": [
+    "playwright",
+    "automation",
+    "vacation-tracking"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "playwright": "^1.41.0",
+    "dotenv": "^16.4.1",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.41.0"
+  }
+}
